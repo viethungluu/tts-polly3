@@ -1,0 +1,87 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: serverless-polly3
+# app and org for use with dashboard.serverless.com
+#app: your-app-name
+#org: your-org-name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.7
+  stage: dev
+  region: ap-southeast-1
+  memorySize: 256
+  timeout: 30
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action:
+            - "s3:PutObject"
+            - "s3:PutObjectAcl"
+          Resource:
+            Fn::Join:
+              - ""
+              - 
+                - "arn:aws:s3:::"
+                - "Ref" : "AudioBucket"
+                - "/*"
+        - Effect: "Allow"
+          Action:
+            - "polly:*"
+          Resource: "*"
+
+# you can define service wide environment variables here
+#  environment:
+#    variable1: value1
+
+# you can add packaging information here
+#package:
+#  patterns:
+#    - '!exclude-me.py'
+#    - '!exclude-me-dir/**'
+#    - include-me.py
+#    - include-me-dir/**
+
+functions:
+  create-voice:
+    handler: create_voice.synthesize
+    description: Generate voice from text
+    events:
+      - http:
+          method: post
+          path: /
+          integration: lambda
+          cors: true
+          request:
+            passThrough: WHEN_NO_MATCH
+            template:
+              application/json: ''
+          response:
+            headers:
+              Content-Type: "'application/json'"
+    environment:
+      audioBucket:
+        Ref: AudioBucket
+      region: ${self:provider.region}
+    layers:
+      - arn:aws:lambda:ap-southeast-1:102116258712:layer:Lambda-Layer-Pydub:1
+resources:
+  Resources:
+    AudioBucket:
+      Type: AWS::S3::Bucket
